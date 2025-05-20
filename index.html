@@ -6,10 +6,31 @@
     <title>Hyper Casual Three.js Game</title>
     <style>
         body { margin:0; overflow:hidden; }
+        #controls {
+            position:absolute;
+            bottom:20px;
+            width:100%;
+            display:flex;
+            justify-content:space-between;
+            pointer-events:none;
+        }
+        #controls button {
+            pointer-events:auto;
+            background:rgba(255,255,255,0.5);
+            border:none;
+            padding:20px;
+            margin:0 20px;
+            font-size:24px;
+            border-radius:8px;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
 </head>
 <body>
+<div id="controls">
+    <button id="leftBtn">&#8592;</button>
+    <button id="rightBtn">&#8594;</button>
+</div>
 <script>
 let scene, camera, renderer;
 let player, obstacles = [];
@@ -41,16 +62,22 @@ function init() {
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(0, 10, 5);
     scene.add(light);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambient);
 
+    const textureLoader = new THREE.TextureLoader();
+    const groundTexture = textureLoader.load('https://threejs.org/examples/textures/terrain/grasslight-big.jpg');
+    groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
+    groundTexture.repeat.set(10, 50);
     const planeGeo = new THREE.PlaneGeometry(20, 100);
-    const planeMat = new THREE.MeshStandardMaterial({ color: 0x808080 });
+    const planeMat = new THREE.MeshStandardMaterial({ map: groundTexture });
     const plane = new THREE.Mesh(planeGeo, planeMat);
     plane.rotation.x = -Math.PI / 2;
     plane.position.z = -40;
     scene.add(plane);
 
     const playerGeo = new THREE.BoxGeometry(1, 1, 1);
-    const playerMat = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+    const playerMat = new THREE.MeshStandardMaterial({ color: 0x00ff00, metalness: 0.5, roughness: 0.2 });
     player = new THREE.Mesh(playerGeo, playerMat);
     player.position.set(lanes[currentLane], 0.5, 0);
     scene.add(player);
@@ -61,11 +88,15 @@ function init() {
 
     window.addEventListener("resize", onWindowResize, false);
     document.addEventListener("keydown", onKeyDown, false);
+    document.getElementById('leftBtn').addEventListener('click', moveLeft);
+    document.getElementById('rightBtn').addEventListener('click', moveRight);
+    document.getElementById('leftBtn').addEventListener('touchstart', function(e){e.preventDefault(); moveLeft();});
+    document.getElementById('rightBtn').addEventListener('touchstart', function(e){e.preventDefault(); moveRight();});
 }
 
 function spawnObstacle() {
     const geo = new THREE.BoxGeometry(1, 1, 1);
-    const mat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+    const mat = new THREE.MeshStandardMaterial({ color: 0xff0000, metalness: 0.5, roughness: 0.2 });
     const obs = new THREE.Mesh(geo, mat);
     obs.position.set(lanes[Math.floor(Math.random() * 3)], 0.5, -40 - Math.random() * 40);
     scene.add(obs);
@@ -81,10 +112,19 @@ function onWindowResize() {
 function onKeyDown(e) {
     if (gameOver) return;
     if (e.key === "ArrowLeft") {
-        currentLane = Math.max(0, currentLane - 1);
+        moveLeft();
     } else if (e.key === "ArrowRight") {
-        currentLane = Math.min(2, currentLane + 1);
+        moveRight();
     }
+}
+
+function moveLeft() {
+    currentLane = Math.max(0, currentLane - 1);
+    player.position.x = lanes[currentLane];
+}
+
+function moveRight() {
+    currentLane = Math.min(2, currentLane + 1);
     player.position.x = lanes[currentLane];
 }
 
