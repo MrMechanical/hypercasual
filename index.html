@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyper Casual Three.js Game</title>
+    <style>
+        body { margin:0; overflow:hidden; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+</head>
+<body>
+<script>
+let scene, camera, renderer;
+let player, obstacles = [];
+const lanes = [-2, 0, 2];
+let currentLane = 1;
+const speed = 0.1;
+let gameOver = false;
+
+init();
+animate();
+
+function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+
+    camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+    );
+    camera.position.set(0, 5, 10);
+    camera.lookAt(0, 0, 0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(0, 10, 5);
+    scene.add(light);
+
+    const planeGeo = new THREE.PlaneGeometry(20, 100);
+    const planeMat = new THREE.MeshStandardMaterial({ color: 0x808080 });
+    const plane = new THREE.Mesh(planeGeo, planeMat);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.z = -40;
+    scene.add(plane);
+
+    const playerGeo = new THREE.BoxGeometry(1, 1, 1);
+    const playerMat = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+    player = new THREE.Mesh(playerGeo, playerMat);
+    player.position.set(lanes[currentLane], 0.5, 0);
+    scene.add(player);
+
+    for (let i = 0; i < 5; i++) {
+        spawnObstacle();
+    }
+
+    window.addEventListener("resize", onWindowResize, false);
+    document.addEventListener("keydown", onKeyDown, false);
+}
+
+function spawnObstacle() {
+    const geo = new THREE.BoxGeometry(1, 1, 1);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+    const obs = new THREE.Mesh(geo, mat);
+    obs.position.set(lanes[Math.floor(Math.random() * 3)], 0.5, -40 - Math.random() * 40);
+    scene.add(obs);
+    obstacles.push(obs);
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function onKeyDown(e) {
+    if (gameOver) return;
+    if (e.key === "ArrowLeft") {
+        currentLane = Math.max(0, currentLane - 1);
+    } else if (e.key === "ArrowRight") {
+        currentLane = Math.min(2, currentLane + 1);
+    }
+    player.position.x = lanes[currentLane];
+}
+
+function animate() {
+    if (!gameOver) {
+        updateObstacles();
+    }
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+}
+
+function updateObstacles() {
+    for (let i = 0; i < obstacles.length; i++) {
+        obstacles[i].position.z += speed;
+        if (obstacles[i].position.z > 10) {
+            scene.remove(obstacles[i]);
+            obstacles.splice(i, 1);
+            spawnObstacle();
+            i--;
+            continue;
+        }
+        if (obstacles[i].position.distanceTo(player.position) < 1) {
+            gameOver = true;
+            alert("Game Over!");
+        }
+    }
+}
+</script>
+</body>
+</html>
